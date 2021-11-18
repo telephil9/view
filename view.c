@@ -20,6 +20,7 @@ Mousectl *mctl;
 Keyboardctl *kctl;
 Image *bg;
 Image *img;
+Point pos;
 
 Image*
 load9(char *filename)
@@ -104,8 +105,24 @@ redraw(void)
 {
 	lockdisplay(display);
 	draw(screen, screen->r, bg, nil, ZP);
-	draw(screen, screen->r, img, nil, img->r.min);
+	draw(screen, rectaddpt(img->r, addpt(pos, screen->r.min)), img, nil, img->r.min);
 	flushimage(display, 1);
+	unlockdisplay(display);
+}
+
+void
+pan(Point Δ)
+{
+	Rectangle r, ir;
+
+	if(Δ.x == 0 && Δ.y == 0)
+		return;
+	r = rectaddpt(img->r, addpt(pos, screen->r.min));
+	pos = addpt(pos, Δ);
+	ir = rectaddpt(r, Δ);
+	lockdisplay(display);
+	draw(screen, screen->r, bg, nil, ZP);
+	draw(screen, ir, img, nil, img->r.min);
 	unlockdisplay(display);
 }
 
@@ -120,7 +137,18 @@ evtresize(int new)
 void
 evtmouse(Mouse m)
 {
-	USED(m);
+	Point o;
+
+	if(m.buttons == 1){
+		for(;;){
+			o = mctl->xy;
+			if(readmouse(mctl) < 0)
+				break;
+			if((mctl->buttons & 1) == 0)
+				break;
+			pan(subpt(mctl->xy, o));
+		}
+	}
 }
 
 void
@@ -169,6 +197,7 @@ threadmain(int argc, char **argv)
 	alts[Ekeyboard].c = kctl->c;
 	initbg();
 	img = load(*argv);
+	pos = subpt(ZP, img->r.min);
 	evtresize(0);
 	for(;;){
 		switch(alt(alts)){
