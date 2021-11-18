@@ -4,6 +4,7 @@
 #include <thread.h>
 #include <mouse.h>
 #include <keyboard.h>
+#include <plumb.h>
 #include <stb.h>
 #include "a.h"
 
@@ -127,6 +128,36 @@ pan(Point Δ)
 }
 
 void
+plumbproc(void*)
+{
+	Plumbmsg *m;
+	int fd;
+	char *a;
+
+	threadsetname("plumbproc");
+	fd = plumbopen("image", OREAD);
+	if(fd < 0)
+		sysfatal("plumbopen: %r");
+	for(;;){
+		m = plumbrecv(fd);
+		if(m == nil)
+			sysfatal("plumbrecv: %r");
+		a = plumblookup(m->attr, "action");
+		if(a != nil && strncmp(a, "showdata", 8) == 0){
+			fprint(2, "showdata: not implemented");
+		}else{
+			free(img);
+			img = load(m->data);
+			if(img == nil)
+				sysfatal("load: %r");
+			pos = subpt(ZP, img->r.min);
+			redraw();
+		}
+		plumbfree(m);
+	}
+}
+
+void
 evtresize(int new)
 {
 	if(new && getwindow(display, Refnone)<0)
@@ -196,6 +227,7 @@ threadmain(int argc, char **argv)
 	alts[Eresize].c = mctl->resizec;
 	alts[Ekeyboard].c = kctl->c;
 	initbg();
+	proccreate(plumbproc, nil, 8192);
 	img = load(*argv);
 	pos = subpt(ZP, img->r.min);
 	evtresize(0);
