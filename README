@@ -1,0 +1,20 @@
+view
+=====
+`view` is an image viewer for 9front.
+It uses the STB library to load PNG, JPG, GIF and BMP file formats.
+
+`view` currently misses some features that are present in page(1) but
+those will be added in due time.
+
+Usage:
+------
+Install with `mk install`
+Run with `view <image>`
+
+Credits:
+--------
+STB library: https://github.com/nothings/stb
+
+Bugs:
+-----
+That wouldn't be my code otherwise!
