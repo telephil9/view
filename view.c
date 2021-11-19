@@ -24,6 +24,21 @@ Image *bg;
 Image *img;
 Point pos;
 
+enum
+{
+	Mopen,
+	Mexit,
+};
+char *menu2str[] =
+{
+	"open",
+	"exit",
+	nil,
+};
+Menu menu2 = { menu2str };
+
+void redraw(void);
+
 Image*
 load9(char *filename)
 {
@@ -89,6 +104,21 @@ load(char *filename)
 		break;
 	}
 	return i;
+}
+
+int
+loadfromfile(char *filename)
+{
+	Image *i;
+
+	i = load(filename);
+	if(i == nil)
+		return -1;
+	freeimage(img);
+	img = i;
+	pos = subpt(ZP, img->r.min);
+	redraw();
+	return 0;
 }
 
 void
@@ -158,7 +188,6 @@ evtplumb(Plumbmsg *m)
 {
 	int rm;
 	char *a, *f;
-	Image *i;
 
 	rm = 0;
 	a = plumblookup(m->attr, "action");
@@ -172,13 +201,7 @@ evtplumb(Plumbmsg *m)
 	}else{
 		f = strdup(m->data);
 	}
-	i = load(f);
-	if(i != nil){
-		freeimage(img);
-		img = i;
-		pos = subpt(ZP, img->r.min);
-		redraw();
-	}else
+	if(loadfromfile(f) < 0)
 		fprint(2, "cannot load plumbed image: %r"); /* XXX: visual report */
 Err:
 	plumbfree(m);
@@ -200,6 +223,8 @@ void
 evtmouse(Mouse m)
 {
 	Point o;
+	int n;
+	char buf[255] = {0};
 
 	if(m.buttons == 1){
 		for(;;){
@@ -209,6 +234,19 @@ evtmouse(Mouse m)
 			if((mctl->buttons & 1) == 0)
 				break;
 			pan(subpt(mctl->xy, o));
+		}
+	}else if(m.buttons == 2){
+		n = menuhit(2, mctl, &menu2, nil);
+		switch(n){
+		case Mopen:
+			if(enter("open:", buf, sizeof buf, mctl, kctl, nil) > 0){
+				if(loadfromfile(buf) < 0)
+					fprint(2, "cannot open file '%s': %r\n", buf);
+			}
+			break;
+		case Mexit:
+			threadexitsall(nil);
+			break;
 		}
 	}
 }
