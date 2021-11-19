@@ -67,6 +67,20 @@ readfile(char *f, int *len)
 }
 
 int
+writefile(char *filename, char *data, int ndata)
+{
+	int fd;
+
+	fd = create(filename, OWRITE|OEXCL, 0600);
+	if(fd < 0)
+		return -1;
+	if(write(fd, data, ndata) != ndata)
+		return -1;
+	close(fd);
+	return 0;
+}
+
+int
 fileformat(char *filename)
 {
 	static struct {

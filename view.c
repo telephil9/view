@@ -13,6 +13,7 @@ enum
 	Emouse,
 	Eresize,
 	Ekeyboard,
+	Eplumb,
 };
 
 int mainstacksize=16384;
@@ -128,12 +129,13 @@ pan(Point Δ)
 }
 
 void
-plumbproc(void*)
+plumbproc(void *v)
 {
 	Plumbmsg *m;
+	Channel *c;
 	int fd;
-	char *a;
 
+	c = v;
 	threadsetname("plumbproc");
 	fd = plumbopen("image", OREAD);
 	if(fd < 0)
@@ -142,20 +144,46 @@ plumbproc(void*)
 		m = plumbrecv(fd);
 		if(m == nil)
 			sysfatal("plumbrecv: %r");
-		a = plumblookup(m->attr, "action");
-		if(a != nil && strncmp(a, "showdata", 8) == 0){
-			fprint(2, "showdata: not implemented");
-		}else{
-			free(img);
-			img = load(m->data);
-			if(img == nil)
-				sysfatal("load: %r");
-			pos = subpt(ZP, img->r.min);
-			redraw();
-		}
-		plumbfree(m);
+		sendp(c, m);
 	}
 }
+
+/* FIXME: the whole temp file logic is bad and we risk
+   never deleting the file */
+void
+evtplumb(Plumbmsg *m)
+{
+	int rm;
+	char *a, *f;
+	Image *i;
+
+	rm = 0;
+	a = plumblookup(m->attr, "action");
+	if(a != nil && strncmp(a, "showdata", 8) == 0){
+		f = smprint("/tmp/view.%ld.%d", time(nil), getpid());
+		if(writefile(f, m->data, m->ndata) < 0){
+			fprint(2, "cannot write showdata: %r\n");
+			goto Err;
+		}
+		rm = 1;
+	}else{
+		f = strdup(m->data);
+	}
+	i = load(f);
+	if(i != nil){
+		freeimage(img);
+		img = i;
+		pos = subpt(ZP, img->r.min);
+		redraw();
+	}else
+		fprint(2, "cannot load plumbed image: %r"); /* XXX: visual report */
+Err:
+	plumbfree(m);
+	if(rm)
+		remove(f);
+	free(f);
+}
+
 
 void
 evtresize(int new)
@@ -205,10 +233,13 @@ threadmain(int argc, char **argv)
 {
 	Mouse m;
 	Rune k;
+	Plumbmsg *pm;
+	Channel *plumbc;
 	Alt alts[] = {
 		{ nil, &m,  CHANRCV },
 		{ nil, nil, CHANRCV },
 		{ nil, &k,  CHANRCV },
+		{ nil, &pm,	CHANRCV },
 		{ nil, nil, CHANEND },
 	}; 
 
@@ -223,11 +254,14 @@ threadmain(int argc, char **argv)
 		sysfatal("initmouse: %r");
 	if((kctl=initkeyboard(nil)) == nil)
 		sysfatal("initkeyboard: %r");
+	if((plumbc = chancreate(sizeof(Plumbmsg*), 0)) == nil)
+		sysfatal("chancreate: %r");
 	alts[Emouse].c = mctl->c;
 	alts[Eresize].c = mctl->resizec;
 	alts[Ekeyboard].c = kctl->c;
+	alts[Eplumb].c = plumbc;
 	initbg();
-	proccreate(plumbproc, nil, 8192);
+	proccreate(plumbproc, plumbc, 8192);
 	img = load(*argv);
 	pos = subpt(ZP, img->r.min);
 	evtresize(0);
@@ -241,6 +275,9 @@ threadmain(int argc, char **argv)
 			break;
 		case Ekeyboard:
 			evtkey(k);
+			break;
+		case Eplumb:
+			evtplumb(pm);
 			break;
 		}
 	}
