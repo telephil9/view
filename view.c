@@ -107,7 +107,8 @@ redraw(void)
 {
 	lockdisplay(display);
 	draw(screen, screen->r, bg, nil, ZP);
-	draw(screen, rectaddpt(img->r, addpt(pos, screen->r.min)), img, nil, img->r.min);
+	if(img != nil)
+		draw(screen, rectaddpt(img->r, addpt(pos, screen->r.min)), img, nil, img->r.min);
 	flushimage(display, 1);
 	unlockdisplay(display);
 }
@@ -117,6 +118,8 @@ pan(Point Δ)
 {
 	Rectangle r, ir;
 
+	if(img == nil)
+		return;
 	if(Δ.x == 0 && Δ.y == 0)
 		return;
 	r = rectaddpt(img->r, addpt(pos, screen->r.min));
@@ -243,7 +246,12 @@ threadmain(int argc, char **argv)
 		{ nil, nil, CHANEND },
 	}; 
 
-	ARGBEGIN{}ARGEND;
+	img = nil;
+	ARGBEGIN{
+	default:
+		usage();
+		break;
+	}ARGEND;
 	if(argc > 1)
 		usage();
 	if(initdraw(nil, nil, argv0) < 0)
@@ -262,8 +270,10 @@ threadmain(int argc, char **argv)
 	alts[Eplumb].c = plumbc;
 	initbg();
 	proccreate(plumbproc, plumbc, 8192);
-	img = load(*argv);
-	pos = subpt(ZP, img->r.min);
+	if(*argv != nil){
+		img = load(*argv);
+		pos = subpt(ZP, img->r.min);
+	}
 	evtresize(0);
 	for(;;){
 		switch(alt(alts)){
