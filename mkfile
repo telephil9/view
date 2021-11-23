@@ -1,6 +1,7 @@
 </$objtype/mkfile
 
 BIN=/$objtype/bin
+TARG=view
 CFLAGS=-FTVw -p -Istb
 OFILES=view.$O utils.$O
 HFILES=a.h stb/stb.h
