@@ -4738,16 +4738,19 @@ static int stbi__create_png_image_raw(stbi__png *a, stbi_uc *raw, stbi__uint32 r
                *cur++ = scale * ((*in     ) & 0x0f);
             }
             if (k > 0) *cur++ = scale * ((*in >> 4)       );
+			STBI_NOTUSED(cur);
          } else if (depth == 2) {
             for (k=x*img_n; k >= 4; k-=4, ++in) {
                *cur++ = scale * ((*in >> 6)       );
                *cur++ = scale * ((*in >> 4) & 0x03);
                *cur++ = scale * ((*in >> 2) & 0x03);
                *cur++ = scale * ((*in     ) & 0x03);
+				STBI_NOTUSED(cur);
             }
             if (k > 0) *cur++ = scale * ((*in >> 6)       );
             if (k > 1) *cur++ = scale * ((*in >> 4) & 0x03);
             if (k > 2) *cur++ = scale * ((*in >> 2) & 0x03);
+			STBI_NOTUSED(cur);
          } else if (depth == 1) {
             for (k=x*img_n; k >= 8; k-=8, ++in) {
                *cur++ = scale * ((*in >> 7)       );
@@ -4758,6 +4761,7 @@ static int stbi__create_png_image_raw(stbi__png *a, stbi_uc *raw, stbi__uint32 r
                *cur++ = scale * ((*in >> 2) & 0x01);
                *cur++ = scale * ((*in >> 1) & 0x01);
                *cur++ = scale * ((*in     ) & 0x01);
+				STBI_NOTUSED(cur);
             }
             if (k > 0) *cur++ = scale * ((*in >> 7)       );
             if (k > 1) *cur++ = scale * ((*in >> 6) & 0x01);
@@ -4766,6 +4770,7 @@ static int stbi__create_png_image_raw(stbi__png *a, stbi_uc *raw, stbi__uint32 r
             if (k > 4) *cur++ = scale * ((*in >> 3) & 0x01);
             if (k > 5) *cur++ = scale * ((*in >> 2) & 0x01);
             if (k > 6) *cur++ = scale * ((*in >> 1) & 0x01);
+			STBI_NOTUSED(cur);
          }
          if (img_n != out_n) {
             int q;
@@ -5467,7 +5472,7 @@ static void *stbi__bmp_parse_header(stbi__context *s, stbi__bmp_data *info)
 static void *stbi__bmp_load(stbi__context *s, int *x, int *y, int *comp, int req_comp, stbi__result_info *ri)
 {
    stbi_uc *out;
-   unsigned int mr=0,mg=0,mb=0,ma=0, all_a;
+   unsigned int mr,mg,mb,ma, all_a;
    stbi_uc pal[256][4];
    int psize=0,i,j,width;
    int flip_vertically, pad, target;
@@ -5991,6 +5996,10 @@ static void *stbi__tga_load(stbi__context *s, int *x, int *y, int *comp, int req
    tga_palette_start = tga_palette_len = tga_palette_bits =
          tga_x_origin = tga_y_origin = 0;
    STBI_NOTUSED(tga_palette_start);
+   STBI_NOTUSED(tga_palette_len);
+   STBI_NOTUSED(tga_palette_bits);
+   STBI_NOTUSED(tga_x_origin);
+   STBI_NOTUSED(tga_y_origin);
    //   OK, done
    return tga_data;
 }
@@ -6886,7 +6895,7 @@ static void *stbi__load_gif_main(stbi__context *s, int **delays, int *x, int *y,
 {
    if (stbi__gif_test(s)) {
       int layers = 0;
-      stbi_uc *u = 0;
+      stbi_uc *u;
       stbi_uc *out = 0;
       stbi_uc *two_back = 0;
       stbi__gif g;
@@ -6919,6 +6928,7 @@ static void *stbi__load_gif_main(stbi__context *s, int **delays, int *x, int *y,
                else {
                    out = (stbi_uc*) tmp;
                    out_size = layers * stride;
+					STBI_NOTUSED(out_size);
                }
 
                if (delays) {
@@ -6927,17 +6937,20 @@ static void *stbi__load_gif_main(stbi__context *s, int **delays, int *x, int *y,
                      return stbi__load_gif_main_outofmem(&g, out, delays);
                   *delays = new_delays;
                   delays_size = layers * sizeof(int);
+					STBI_NOTUSED(delays_size);
                }
             } else {
                out = (stbi_uc*)stbi__malloc( layers * stride );
                if (!out)
                   return stbi__load_gif_main_outofmem(&g, out, delays);
                out_size = layers * stride;
+					STBI_NOTUSED(out_size);
                if (delays) {
                   *delays = (int*) stbi__malloc( layers * sizeof(int) );
                   if (!*delays)
                      return stbi__load_gif_main_outofmem(&g, out, delays);
                   delays_size = layers * sizeof(int);
+					STBI_NOTUSED(delays_size);
                }
             }
             memcpy( out + ((layers - 1) * stride), u, stride );
@@ -6969,7 +6982,7 @@ static void *stbi__load_gif_main(stbi__context *s, int **delays, int *x, int *y,
 
 static void *stbi__gif_load(stbi__context *s, int *x, int *y, int *comp, int req_comp, stbi__result_info *ri)
 {
-   stbi_uc *u = 0;
+   stbi_uc *u;
    stbi__gif g;
    memset(&g, 0, sizeof(g));
    STBI_NOTUSED(ri);
@@ -7031,7 +7044,7 @@ static int stbi__hdr_test(stbi__context* s)
 static char *stbi__hdr_gettoken(stbi__context *z, char *buffer)
 {
    int len=0;
-   char c = '\0';
+   char c;
 
    c = (char) stbi__get8(z);
 
