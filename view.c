@@ -26,16 +26,33 @@ Point pos;
 
 enum
 {
+	Mhflip,
+	Mvflip,
+	Mrotleft,
+	Mrotright,
+};
+char *menu2str[] =
+{
+	"flip horiz.",
+	"flip vert.",
+	"rotate left",
+	"rotate right",
+	nil,
+};
+Menu menu2 = { menu2str };
+
+enum
+{
 	Mopen,
 	Mexit,
 };
-char *menu2str[] =
+char *menu3str[] =
 {
 	"open",
 	"exit",
 	nil,
 };
-Menu menu2 = { menu2str };
+Menu menu3 = { menu3str };
 
 void redraw(void);
 
@@ -219,12 +236,96 @@ evtresize(int new)
 	redraw();
 }
 
+Image*
+rotate(int op)
+{
+	static char *oparg[] = {
+		[Mhflip]	= "-l",
+		[Mvflip]	= "-u",
+		[Mrotleft]	= "-r 270",
+		[Mrotright]	= "-r 90",
+	};
+	Image *i;
+	int ifd[2], ofd[2];
+	char *argv[3] = { "rotate", oparg[op], nil };
+
+	if(pipe(ifd) < 0)
+		return nil;
+	if(pipe(ofd) < 0){
+		close(ifd[0]);
+		close(ifd[1]);
+		return nil;
+	}
+	switch(rfork(RFFDG|RFPROC|RFNOWAIT)){
+	case -1:
+		close(ifd[0]);
+		close(ifd[1]);
+		close(ofd[0]);
+		close(ofd[1]);
+		return nil;
+	case 0:
+		dup(ifd[1], 0);
+		dup(ofd[1], 1);
+		close(ifd[1]);
+		close(ifd[0]);
+		close(ofd[1]);
+		close(ofd[0]);
+		exec("/bin/rotate", argv);
+		_exits("exec");
+	}
+	if(writeimage(ifd[0], img, 1) < 0){
+		i = nil;
+		goto End;
+	}
+	i = readimage(display, ofd[0], 1);
+End:
+	close(ifd[0]);
+	close(ifd[1]);
+	close(ofd[0]);
+	close(ofd[1]);
+	return i;
+}
+
+void
+menu2hit(void)
+{
+	Image *i;
+	int n;
+
+	n = menuhit(2, mctl, &menu2, nil);
+	if(n >= 0){
+		i = rotate(n);
+		freeimage(img);
+		img = i;
+		pos = subpt(ZP, img->r.min);
+		redraw();
+	}
+}
+
+void
+menu3hit(void)
+{
+	char buf[255];
+	int n;
+
+	n = menuhit(3, mctl, &menu3, nil);
+	switch(n){
+	case Mopen:
+		if(enter("open:", buf, sizeof buf, mctl, kctl, nil) > 0){
+			if(loadfromfile(buf) < 0)
+				fprint(2, "cannot open file '%s': %r\n", buf);
+		}
+		break;
+	case Mexit:
+		threadexitsall(nil);
+		break;
+	}
+}
+
 void
 evtmouse(Mouse m)
 {
 	Point o;
-	int n;
-	char buf[255] = {0};
 
 	if(m.buttons == 1){
 		for(;;){
@@ -236,19 +337,10 @@ evtmouse(Mouse m)
 			pan(subpt(mctl->xy, o));
 		}
 	}else if(m.buttons == 2){
-		n = menuhit(2, mctl, &menu2, nil);
-		switch(n){
-		case Mopen:
-			if(enter("open:", buf, sizeof buf, mctl, kctl, nil) > 0){
-				if(loadfromfile(buf) < 0)
-					fprint(2, "cannot open file '%s': %r\n", buf);
-			}
-			break;
-		case Mexit:
-			threadexitsall(nil);
-			break;
-		}
-	}
+		menu2hit();
+	}else if(m.buttons == 4){
+		menu3hit();
+	}		
 }
 
 void
