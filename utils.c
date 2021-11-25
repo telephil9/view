@@ -123,3 +123,42 @@ fileformat(char *filename)
 	werrstr("unknown image type %s", s);
 	return -1;
 }
+
+Image*
+ipipeto(Image *in, char *cmd)
+{
+	Image *out;
+	int ifd[2], ofd[2];
+	char *argv[4] = { "rc", "-c", cmd, nil };
+
+	out = nil;
+	if(pipe(ifd) < 0)
+		return nil;
+	if(pipe(ofd) < 0){
+		close(ifd[0]);
+		close(ifd[1]);
+		return nil;
+	}
+	switch(rfork(RFFDG|RFPROC|RFNOWAIT)){
+	case -1:
+		goto Err;
+	case 0:
+		dup(ifd[1], 0);
+		dup(ofd[1], 1);
+		close(ifd[1]);
+		close(ifd[0]);
+		close(ofd[1]);
+		close(ofd[0]);
+		exec("/bin/rc", argv);
+		_exits("exec");
+	}
+	if(writeimage(ifd[0], in, 1) < 0)
+		goto Err;
+	out = readimage(display, ofd[0], 1);
+Err:
+	close(ifd[0]);
+	close(ifd[1]);
+	close(ofd[0]);
+	close(ofd[1]);
+	return out;
+}

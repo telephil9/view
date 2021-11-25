@@ -239,51 +239,17 @@ evtresize(int new)
 Image*
 rotate(int op)
 {
-	static char *oparg[] = {
-		[Mhflip]	= "-l",
-		[Mvflip]	= "-u",
-		[Mrotleft]	= "-r 270",
-		[Mrotright]	= "-r 90",
+	static char *opcmd[] = {
+		[Mhflip]	= "rotate -l",
+		[Mvflip]	= "rotate -u",
+		[Mrotleft]	= "rotate -r 270",
+		[Mrotright]	= "rotate -r 90",
 	};
-	Image *i;
-	int ifd[2], ofd[2];
-	char *argv[3] = { "rotate", oparg[op], nil };
-
-	if(pipe(ifd) < 0)
-		return nil;
-	if(pipe(ofd) < 0){
-		close(ifd[0]);
-		close(ifd[1]);
+	if(op < 0 || op > 3){
+		werrstr("invalid rotate op");
 		return nil;
 	}
-	switch(rfork(RFFDG|RFPROC|RFNOWAIT)){
-	case -1:
-		close(ifd[0]);
-		close(ifd[1]);
-		close(ofd[0]);
-		close(ofd[1]);
-		return nil;
-	case 0:
-		dup(ifd[1], 0);
-		dup(ofd[1], 1);
-		close(ifd[1]);
-		close(ifd[0]);
-		close(ofd[1]);
-		close(ofd[0]);
-		exec("/bin/rotate", argv);
-		_exits("exec");
-	}
-	if(writeimage(ifd[0], img, 1) < 0){
-		i = nil;
-		goto End;
-	}
-	i = readimage(display, ofd[0], 1);
-End:
-	close(ifd[0]);
-	close(ifd[1]);
-	close(ofd[0]);
-	close(ofd[1]);
-	return i;
+	return ipipeto(img, opcmd[op]);
 }
 
 void

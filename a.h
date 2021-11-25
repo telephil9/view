@@ -14,3 +14,4 @@ Image*	eallocimage(int, int, ulong, int, ulong);
 uchar*	readfile(char*, int*);
 int		writefile(char*, char*, int);
 int		fileformat(char*);
+Image*	ipipeto(Image*, char*);
