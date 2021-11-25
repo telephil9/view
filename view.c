@@ -30,6 +30,7 @@ enum
 	Mvflip,
 	Mrotleft,
 	Mrotright,
+	Mpipeto,
 };
 char *menu2str[] =
 {
@@ -37,6 +38,7 @@ char *menu2str[] =
 	"flip vert.",
 	"rotate left",
 	"rotate right",
+	"pipe to...",
 	nil,
 };
 Menu menu2 = { menu2str };
@@ -257,15 +259,35 @@ menu2hit(void)
 {
 	Image *i;
 	int n;
+	char buf[255];
 
+	i = nil;
 	n = menuhit(2, mctl, &menu2, nil);
-	if(n >= 0){
+	switch(n){
+	case Mhflip:
+	case Mvflip:
+	case Mrotleft:
+	case Mrotright:
 		i = rotate(n);
-		freeimage(img);
-		img = i;
-		pos = subpt(ZP, img->r.min);
-		redraw();
+		if(i == nil){
+			fprint(2, "unable to rotate image: %r\n");
+			return;
+		}
+		break;
+	case Mpipeto:
+		if(enter("command:", buf, sizeof buf, mctl, kctl, nil) > 0){
+			i = ipipeto(img, buf);
+			if(i == nil){
+				fprint(2, "unable to pipe image: %r\n");
+				return;
+			}
+		}
+		break;
 	}
+	freeimage(img);
+	img = i;
+	pos = subpt(ZP, img->r.min);
+	redraw();
 }
 
 void
