@@ -21,11 +21,28 @@ int mainstacksize=16384;
 Mousectl *mctl;
 Keyboardctl *kctl;
 Image *bg;
+Image *orig;
 Image *img;
 Point pos;
+int zoomlevel;
+
+const char* zoomlevels[] = {
+	"25%", "33%", "50%", "75%",
+	"100%",
+	"150%", "200%", "300%", "400%",
+};
 
 enum
 {
+	Defaultzoomlevel = 4,
+	Nzoomlevels = nelem(zoomlevels),
+};
+
+enum
+{
+	Mzoomin,
+	Mzoomout,
+	Morigsize,
 	Mhflip,
 	Mvflip,
 	Mrotleft,
@@ -34,6 +51,9 @@ enum
 };
 char *menu2str[] =
 {
+	"zoom in",
+	"zoom out",
+	"orig. size",
 	"flip horiz.",
 	"flip vert.",
 	"rotate left",
@@ -133,6 +153,8 @@ loadfromfile(char *filename)
 	i = load(filename);
 	if(i == nil)
 		return -1;
+	freeimage(orig);
+	orig = nil;
 	freeimage(img);
 	img = i;
 	pos = subpt(ZP, img->r.min);
@@ -241,17 +263,69 @@ evtresize(int new)
 Image*
 rotate(int op)
 {
-	static char *opcmd[] = {
-		[Mhflip]	= "rotate -l",
-		[Mvflip]	= "rotate -u",
-		[Mrotleft]	= "rotate -r 270",
-		[Mrotright]	= "rotate -r 90",
-	};
-	if(op < 0 || op > 3){
+	const char *cmd;
+
+	switch(op){
+	case Mhflip:
+		cmd = "rotate -l";
+		break;
+	case Mvflip:
+		cmd = "rotate -u";
+		break;
+	case Mrotleft:
+		cmd = "rotate -r 270";
+		break;
+	case Mrotright:
+		cmd = "rotate -r 90";
+		break;
+	default:
 		werrstr("invalid rotate op");
 		return nil;
 	}
-	return ipipeto(img, opcmd[op]);
+	return ipipeto(img, cmd);
+}
+
+void
+zoom(int zop)
+{
+	Image *i;
+	char cmd[255];
+
+	switch(zop){
+	case Mzoomin:
+		if(zoomlevel + 1 >= Nzoomlevels)
+			return;
+		++zoomlevel;
+		break;
+	case Mzoomout:
+		if(zoomlevel == 0)
+			return;
+		--zoomlevel;
+		break;
+	case Morigsize:
+		if(zoomlevel == Defaultzoomlevel)
+			return;
+		zoomlevel = Defaultzoomlevel;
+		img = orig;
+		goto Redraw;
+	}
+	if(snprint(cmd, sizeof cmd, "resize -x %s", zoomlevels[zoomlevel]) <= 0){
+		fprint(2, "error creating zoom command: %r\n"); /* XXX */
+		return;
+	}
+	i = ipipeto(orig == nil ? img : orig, cmd);
+	if(i == nil){
+		fprint(2, "unable to zoom image: %r\n"); /* XXX */
+		return;
+	}
+	if(orig == nil)
+		orig = img;
+	else
+		freeimage(img);
+	img = i;
+Redraw:
+	pos = subpt(ZP, img->r.min);
+	redraw();
 }
 
 void
@@ -264,6 +338,11 @@ menu2hit(void)
 	i = nil;
 	n = menuhit(2, mctl, &menu2, nil);
 	switch(n){
+	case Mzoomin:
+	case Mzoomout:
+	case Morigsize:
+		zoom(n);
+		return;
 	case Mhflip:
 	case Mvflip:
 	case Mrotleft:
@@ -275,12 +354,12 @@ menu2hit(void)
 		}
 		break;
 	case Mpipeto:
-		if(enter("command:", buf, sizeof buf, mctl, kctl, nil) > 0){
-			i = ipipeto(img, buf);
-			if(i == nil){
-				fprint(2, "unable to pipe image: %r\n");
-				return;
-			}
+		if(enter("command:", buf, sizeof buf, mctl, kctl, nil) <= 0)
+			return;
+		i = ipipeto(img, buf);
+		if(i == nil){
+			fprint(2, "unable to pipe image: %r\n");
+			return;
 		}
 		break;
 	}
@@ -365,6 +444,7 @@ threadmain(int argc, char **argv)
 	}; 
 
 	img = nil;
+	zoomlevel = Defaultzoomlevel;
 	ARGBEGIN{
 	default:
 		usage();
