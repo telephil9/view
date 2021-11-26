@@ -335,7 +335,6 @@ menu2hit(void)
 	int n;
 	char buf[255];
 
-	i = nil;
 	n = menuhit(2, mctl, &menu2, nil);
 	switch(n){
 	case Mzoomin:
@@ -362,6 +361,8 @@ menu2hit(void)
 			return;
 		}
 		break;
+	default:
+		return;
 	}
 	freeimage(img);
 	img = i;
