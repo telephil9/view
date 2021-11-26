@@ -43,10 +43,10 @@ enum
 	Mzoomin,
 	Mzoomout,
 	Morigsize,
-	Mhflip,
-	Mvflip,
-	Mrotleft,
-	Mrotright,
+	Mflip,
+	Mflop,
+	Mrotcw,
+	Mrotccw,
 	Mpipeto,
 };
 char *menu2str[] =
@@ -54,10 +54,10 @@ char *menu2str[] =
 	"zoom in",
 	"zoom out",
 	"orig. size",
-	"flip horiz.",
-	"flip vert.",
-	"rotate left",
-	"rotate right",
+	"flip",
+	"flop",
+	"rotate cw",
+	"rotate ccw",
 	"pipe to...",
 	nil,
 };
@@ -266,16 +266,16 @@ rotate(int op)
 	const char *cmd;
 
 	switch(op){
-	case Mhflip:
+	case Mflop:
 		cmd = "rotate -l";
 		break;
-	case Mvflip:
+	case Mflip:
 		cmd = "rotate -u";
 		break;
-	case Mrotleft:
+	case Mrotccw:
 		cmd = "rotate -r 270";
 		break;
-	case Mrotright:
+	case Mrotcw:
 		cmd = "rotate -r 90";
 		break;
 	default:
@@ -343,10 +343,10 @@ menu2hit(void)
 	case Morigsize:
 		zoom(n);
 		return;
-	case Mhflip:
-	case Mvflip:
-	case Mrotleft:
-	case Mrotright:
+	case Mflip:
+	case Mflop:
+	case Mrotccw:
+	case Mrotcw:
 		i = rotate(n);
 		if(i == nil){
 			fprint(2, "unable to rotate image: %r\n");
