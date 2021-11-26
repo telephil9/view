@@ -342,6 +342,8 @@ menu2hit(void)
 	char buf[255];
 
 	n = sepmenuhit(2, mctl, &menu2, nil);
+	if(img == nil)
+		return;
 	switch(n){
 	case Mzoomin:
 	case Mzoomout:
