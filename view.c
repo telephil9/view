@@ -40,31 +40,31 @@ enum
 
 enum
 {
+	Mzcat,
 	Mzoomin,
 	Mzoomout,
 	Morigsize,
-	Mzsep,
-	Mflip,
-	Mflop,
-	Mfsep,
+	Mrcat,
 	Mrotcw,
 	Mrotccw,
-	Mrsep,
+	Mflip,
+	Mflop,
+	Mmcat,
 	Mpipeto,
 };
 char *menu2str[] =
 {
-	"zoom in",
-	"zoom out",
-	"orig. size",
-	"-",
+	"_Zoom",
+	"in",
+	"out",
+	"reinit.",
+	"_Rotate",
+	"cw",
+	"ccw",
 	"flip",
 	"flop",
-	"-",
-	"rotate cw",
-	"rotate ccw",
-	"-",
-	"pipe to...",
+	"_Misc",
+	"pipe...",
 	nil,
 };
 Menu menu2 = { menu2str };

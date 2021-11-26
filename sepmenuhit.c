@@ -80,7 +80,7 @@ issep(Menu *menu, int off, int i)
 	char *item;
 
 	item = menu->item ? menu->item[i+off] : (*menu->gen)(i+off);
-	return (item[0] == '-' && item[1] == 0);
+	return (item[0] == '_' && item[1] != 0);
 }
 
 static
@@ -90,7 +90,6 @@ paintitem(Image *m, Menu *menu, Rectangle textr, int off, int i, int highlight, 
 	char *item;
 	Rectangle r;
 	Point pt;
-	int y;
 
 	if(i < 0)
 		return;
@@ -105,12 +104,11 @@ paintitem(Image *m, Menu *menu, Rectangle textr, int off, int i, int highlight, 
 	pt.x = (textr.min.x+textr.max.x-stringwidth(font, item))/2;
 	pt.y = textr.min.y+i*(font->height+Vspacing);
 	if(issep(menu, off, i)){
-		y = pt.y + (font->height + Vspacing) / 2;
 		draw(screen, r, back, nil, pt);
-		line(screen, Pt(textr.min.x - Margin, y), Pt(textr.max.x + Margin, y), 0, 0, 0, bord, ZP);
+		string(m, Pt(textr.min.x, pt.y), high, pt, font, item+1);
 	}else{
 		draw(m, r, highlight? high : back, nil, pt);
-		string(m, pt, highlight? htext : text, pt, font, item);
+		string(m, Pt(textr.min.x + 2*Margin, pt.y), highlight? htext : text, pt, font, item);
 	}
 }
 
@@ -186,7 +184,7 @@ sepmenuhit(int but, Mousectl *mc, Menu *menu, Screen *scr)
 	for(nitem = 0;
 	    item = menu->item? menu->item[nitem] : (*menu->gen)(nitem);
 	    nitem++){
-		i = stringwidth(font, item);
+		i = stringwidth(font, item)+4*Margin;
 		if(i > maxwid)
 			maxwid = i;
 	}
