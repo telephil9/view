@@ -15,3 +15,6 @@ uchar*	readfile(char*, int*);
 int		writefile(char*, char*, int);
 int		fileformat(char*);
 Image*	ipipeto(Image*, char*);
+
+int sepmenuhit(int, Mousectl*, Menu*, Screen*);
+

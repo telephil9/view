@@ -43,10 +43,13 @@ enum
 	Mzoomin,
 	Mzoomout,
 	Morigsize,
+	Mzsep,
 	Mflip,
 	Mflop,
+	Mfsep,
 	Mrotcw,
 	Mrotccw,
+	Mrsep,
 	Mpipeto,
 };
 char *menu2str[] =
@@ -54,10 +57,13 @@ char *menu2str[] =
 	"zoom in",
 	"zoom out",
 	"orig. size",
+	"-",
 	"flip",
 	"flop",
+	"-",
 	"rotate cw",
 	"rotate ccw",
+	"-",
 	"pipe to...",
 	nil,
 };
@@ -335,7 +341,7 @@ menu2hit(void)
 	int n;
 	char buf[255];
 
-	n = menuhit(2, mctl, &menu2, nil);
+	n = sepmenuhit(2, mctl, &menu2, nil);
 	switch(n){
 	case Mzoomin:
 	case Mzoomout:

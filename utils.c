@@ -1,6 +1,7 @@
 #include <u.h>
 #include <libc.h>
 #include <draw.h>
+#include <mouse.h>
 #include "a.h"
 
 void*
