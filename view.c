@@ -6,7 +6,6 @@
 #include <keyboard.h>
 #include <cursor.h>
 #include <plumb.h>
-#include <stb.h>
 #include "a.h"
 
 enum
@@ -79,7 +78,7 @@ char *menu2str[] =
 	"flip",
 	"flop",
 	"_Misc",
-	"pipe...",
+	"pipe",
 	nil,
 };
 Menu menu2 = { menu2str };
@@ -87,84 +86,21 @@ Menu menu2 = { menu2str };
 enum
 {
 	Mopen,
+	Msave,
+	Mexport,
 	Mexit,
 };
 char *menu3str[] =
 {
 	"open",
+	"save",
+	"export",
 	"exit",
 	nil,
 };
 Menu menu3 = { menu3str };
 
 void redraw(void);
-
-Image*
-load9(char *filename)
-{
-	Image *i;
-	int fd;
-
-	fd = open(filename, OREAD);
-	if(fd < 0)
-		sysfatal("open: %r");
-	i = readimage(display, fd, 1);
-	if(i == nil)
-		sysfatal("readimage: %r");
-	close(fd);
-	return i;
-}
-
-Image*
-loadany(char *filename)
-{
-	Image *i;
-	uchar *buf, *out;
-	int n, w, h, c;
-	ulong chan;
-
-	buf = readfile(filename, &n);
-	if(buf == nil)
-		sysfatal("readfile: %r");
-	out = stbi_load_from_memory(buf, n, &w, &h, &c, 4);
-	free(buf);
-	if(out==nil)
-		sysfatal("stbi_load_from_memory: %r");
-	chan = c==3 ? XBGR32 : ABGR32;
-	lockdisplay(display);
-	i = eallocimage(w, h, chan, 0, DNofill);
-	if(loadimage(i, i->r, out, 4*w*h)<0)
-		sysfatal("loadimage: %r");
-	unlockdisplay(display);
-	return i;
-}
-
-Image*
-load(char *filename)
-{
-	Image *i;
-	int f;
-
-	i = nil;
-	f = fileformat(filename);
-	if(f < 0)
-		sysfatal("load: %r");
-	switch(f){
-	case SVG:
-		fprint(2, "SVG files not handled\n");
-		threadexitsall("SVG files not handled");		
-	case NINE:
-		i = load9(filename);
-		break;
-	case GIF:
-	case JPEG:
-	case PNG:
-	case BMP:
-		i = loadany(filename);
-		break;
-	}
-	return i;
-}
 
 int
 loadfromfile(char *filename)
@@ -388,7 +324,7 @@ menu2hit(void)
 		return;
 	}
 	freeimage(img);
-	img = i;
+	orig = img = i;
 	pos = subpt(ZP, img->r.min);
 	redraw();
 }
@@ -396,7 +332,7 @@ menu2hit(void)
 void
 menu3hit(void)
 {
-	char buf[255];
+	char buf[255] = {0};
 	int n;
 
 	n = menuhit(3, mctl, &menu3, nil);
@@ -405,6 +341,18 @@ menu3hit(void)
 		if(enter("open:", buf, sizeof buf, mctl, kctl, nil) > 0){
 			if(loadfromfile(buf) < 0)
 				fprint(2, "cannot open file '%s': %r\n", buf);
+		}
+		break;
+	case Msave:
+		if(enter("save:", buf, sizeof buf, mctl, kctl, nil) > 0){
+			if(save(orig, buf) < 0)
+				fprint(2, "cannot save file '%s': %r\n", buf);
+		}
+		break;
+	case Mexport:
+		if(enter("export:", buf, sizeof buf, mctl, kctl, nil) > 0){
+			if(export(orig, buf) < 0)
+				fprint(2, "cannot export file '%s': %r\n", buf);
 		}
 		break;
 	case Mexit:
@@ -495,7 +443,7 @@ threadmain(int argc, char **argv)
 	initbg();
 	proccreate(plumbproc, plumbc, 8192);
 	if(*argv != nil){
-		img = load(*argv);
+		orig = img = load(*argv);
 		pos = subpt(ZP, img->r.min);
 	}
 	evtresize(0);

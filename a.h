@@ -8,6 +8,9 @@ enum
 	BMP,
 };
 
+Image*	load(char*);
+int		save(Image*, char*);
+int		export(Image*, char*);
 void*	emalloc(ulong);
 void*	erealloc(void*, ulong);
 Image*	eallocimage(int, int, ulong, int, ulong);
