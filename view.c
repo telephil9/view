@@ -39,6 +39,7 @@ Image *orig;
 Image *img;
 Point pos;
 int zoomlevel;
+int lfd;
 
 const char* zoomlevels[] = {
 	"25%", "33%", "50%", "75%",
@@ -104,6 +105,14 @@ void redraw(void);
 void zoom(void);
 
 void
+setlabel(char *label)
+{
+	if(lfd < 0)
+		return;
+	fprint(lfd, "%s", label);
+}
+
+void
 setimage(Image *i, int move)
 {
 	if(img != nil && img != orig){
@@ -131,6 +140,7 @@ loadfromfile(char *filename)
 		return -1;
 	zoomlevel = Defaultzoomlevel;
 	setimage(i, 1);
+	setlabel(filename);
 	return 0;
 }
 
@@ -438,6 +448,7 @@ threadmain(int argc, char **argv)
 
 	img = nil;
 	zoomlevel = Defaultzoomlevel;
+	lfd = open("/dev/label", OWRITE);
 	ARGBEGIN{
 	default:
 		usage();
