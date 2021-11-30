@@ -1,10 +1,15 @@
 view
 =====
 `view` is an image viewer for 9front.
-It uses the STB library to load PNG, JPG, GIF and BMP file formats.
+It is a (almost) complete replacement for page(1) with some extra features.
 
-`view` currently misses some features that are present in page(1) but
-those will be added in due time.
+`view` uses external libraries to load image formats:
+- STB: PNG, JPG, GIF, BMP, TGA, PPM and PGM
+- nanosvg: SVG
+
+`view` listens on the plumber(4) image port and handles both:
+- filename plumbing
+- image data plumbing when the plumb message action attribute is set to `showdata`
 
 Usage:
 ------
@@ -14,6 +19,15 @@ Run with `view <image>`
 Credits:
 --------
 STB library: https://github.com/nothings/stb
+nanosvg: https://github.com/memononen/nanosvg
+OpenBSD (math functions): http://openbsd.org
+
+License:
+-----------
+- view: MIT license
+- stb_image: Public Domain
+- nanosvg: zlib license
+- libposix: BSD license
 
 Bugs:
 -----
