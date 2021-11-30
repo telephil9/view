@@ -101,6 +101,25 @@ char *menu3str[] =
 Menu menu3 = { menu3str };
 
 void redraw(void);
+void zoom(void);
+
+void
+setimage(Image *i, int move)
+{
+	if(img != nil && img != orig){
+		freeimage(img);
+		img = nil;
+	}
+	freeimage(orig);
+	orig = i;
+	if(zoomlevel != Defaultzoomlevel)
+		zoom();
+	else
+		img = orig;
+	if(move)
+		pos = subpt(ZP, img->r.min);
+	redraw();
+}
 
 int
 loadfromfile(char *filename)
@@ -110,12 +129,8 @@ loadfromfile(char *filename)
 	i = load(filename);
 	if(i == nil)
 		return -1;
-	freeimage(orig);
-	orig = nil;
-	freeimage(img);
-	img = i;
-	pos = subpt(ZP, img->r.min);
-	redraw();
+	zoomlevel = Defaultzoomlevel;
+	setimage(i, 1);
 	return 0;
 }
 
@@ -239,15 +254,36 @@ rotate(int op)
 		werrstr("invalid rotate op");
 		return nil;
 	}
-	return ipipeto(img, cmd);
+	return ipipeto(orig, cmd);
 }
 
 void
-zoom(int zop)
+zoom(void)
 {
 	Image *i;
 	char cmd[255];
 
+	if(zoomlevel == Defaultzoomlevel){
+		img = orig;
+		redraw();
+		return;
+	}
+	if(snprint(cmd, sizeof cmd, "resize -x %s", zoomlevels[zoomlevel]) <= 0){
+		fprint(2, "error creating zoom command: %r\n"); /* XXX */
+		return;
+	}
+	i = ipipeto(orig, cmd);
+	if(i == nil){
+		fprint(2, "unable to zoom image: %r\n"); /* XXX */
+		return;
+	}
+	img = i;
+	redraw();
+}
+
+void
+dozoom(int zop)
+{
 	switch(zop){
 	case Mzoomin:
 		if(zoomlevel + 1 >= Nzoomlevels)
@@ -263,26 +299,11 @@ zoom(int zop)
 		if(zoomlevel == Defaultzoomlevel)
 			return;
 		zoomlevel = Defaultzoomlevel;
-		img = orig;
-		goto Redraw;
+		break;
 	}
-	if(snprint(cmd, sizeof cmd, "resize -x %s", zoomlevels[zoomlevel]) <= 0){
-		fprint(2, "error creating zoom command: %r\n"); /* XXX */
-		return;
-	}
-	i = ipipeto(orig == nil ? img : orig, cmd);
-	if(i == nil){
-		fprint(2, "unable to zoom image: %r\n"); /* XXX */
-		return;
-	}
-	if(orig == nil)
-		orig = img;
-	else
+	if(img != nil && img != orig)
 		freeimage(img);
-	img = i;
-Redraw:
-	pos = subpt(ZP, img->r.min);
-	redraw();
+	zoom();
 }
 
 void
@@ -290,7 +311,7 @@ menu2hit(void)
 {
 	Image *i;
 	int n;
-	char buf[255];
+	char buf[255] = {0};
 
 	n = sepmenuhit(2, mctl, &menu2, nil);
 	if(img == nil)
@@ -299,7 +320,7 @@ menu2hit(void)
 	case Mzoomin:
 	case Mzoomout:
 	case Morigsize:
-		zoom(n);
+		dozoom(n);
 		return;
 	case Mflip:
 	case Mflop:
@@ -310,23 +331,21 @@ menu2hit(void)
 			fprint(2, "unable to rotate image: %r\n");
 			return;
 		}
+		setimage(i, 0);
 		break;
 	case Mpipeto:
 		if(enter("command:", buf, sizeof buf, mctl, kctl, nil) <= 0)
 			return;
-		i = ipipeto(img, buf);
+		i = ipipeto(orig, buf);
 		if(i == nil){
 			fprint(2, "unable to pipe image: %r\n");
 			return;
 		}
+		setimage(i, 0);
 		break;
 	default:
 		return;
 	}
-	freeimage(img);
-	orig = img = i;
-	pos = subpt(ZP, img->r.min);
-	redraw();
 }
 
 void
@@ -442,11 +461,10 @@ threadmain(int argc, char **argv)
 	alts[Eplumb].c = plumbc;
 	initbg();
 	proccreate(plumbproc, plumbc, 8192);
-	if(*argv != nil){
-		orig = img = load(*argv);
-		pos = subpt(ZP, img->r.min);
-	}
-	evtresize(0);
+	if(*argv != nil)
+		loadfromfile(*argv);
+	else
+		evtresize(0);
 	for(;;){
 		switch(alt(alts)){
 		case Emouse:
@@ -464,4 +482,3 @@ threadmain(int argc, char **argv)
 		}
 	}
 }
-
