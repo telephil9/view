@@ -10,7 +10,11 @@
 #define STBI_NO_STDIO
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-
+#define NANOSVG_ALL_COLOR_KEYWORDS
+#define NANOSVG_IMPLEMENTATION
+#include "nanosvg.h"
+#define NANOSVGRAST_IMPLEMENTATION
+#include "nanosvgrast.h"
 
 Image*
 load9(char *filename)
@@ -53,6 +57,38 @@ loadany(char *filename)
 }
 
 Image*
+loadsvg(char *filename)
+{
+	Image *i;
+	NSVGimage *image;
+	NSVGrasterizer *rast;
+	uchar *data;
+	int w, h, sz;
+
+	image = nsvgParseFromFile(filename, "px", 96);
+	if(image==nil)
+		sysfatal("svg parse: %r");
+	w = image->width;
+	h = image->height;
+	rast = nsvgCreateRasterizer();
+	if(rast==nil)
+		sysfatal("create rasterizer: %r");
+	sz = w*h*4;
+	data = malloc(sz);
+	if(data==nil)
+		sysfatal("malloc: %r");
+	nsvgRasterize(rast, image, 0, 0, 1.0, data, w, h, w*4);
+	nsvgDelete(image);
+	nsvgDeleteRasterizer(rast);
+	lockdisplay(display);
+	i = eallocimage(w, h, ABGR32, 0, DNofill);
+	if(loadimage(i, i->r, data, sz)<sz)
+		sysfatal("loadimage: %r");
+	unlockdisplay(display);
+	return i;
+}
+
+Image*
 load(char *filename)
 {
 	Image *i;
@@ -64,8 +100,8 @@ load(char *filename)
 		sysfatal("load: %r");
 	switch(f){
 	case SVG:
-		fprint(2, "SVG files not handled\n");
-		threadexitsall("SVG files not handled");		
+		i = loadsvg(filename);
+		break;		
 	case NINE:
 		i = load9(filename);
 		break;
