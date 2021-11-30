@@ -4,8 +4,13 @@
 #include <thread.h>
 #include <mouse.h>
 #include <keyboard.h>
-#include <stb.h>
 #include "a.h"
+
+#define NULL nil
+#define STBI_NO_STDIO
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 
 Image*
 load9(char *filename)
